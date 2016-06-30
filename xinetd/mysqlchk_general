@@ -1,0 +1,15 @@
+#
+# /etc/xinetd.d/mysqlchk_general
+#
+service mysqlchk_general
+{
+  flags           = REUSE
+  socket_type     = stream
+  protocol        = tcp
+  port            = 9876
+  wait            = no
+  user            = nobody
+  server          = /path/to/scipts/xinetd-mysql
+  log_on_failure  += USERID
+  disable         = no
+}

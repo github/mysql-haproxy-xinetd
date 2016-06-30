@@ -1,0 +1,28 @@
+#!/bin/bash
+#/
+
+# echo HTTP response and exit
+http_response() {
+  local http_code="$1"
+  local message="$2"
+
+  /bin/echo -en "${http_code}\r\n"
+  /bin/echo -en "Content-Type: text/plain\r\n"
+  /bin/echo -en "Content-Length: ${#message}\r\n"
+  /bin/echo -en "\r\n"
+  /bin/echo -en "${message}\r\n"
+  /bin/echo -en "\r\n"
+  exit
+}
+
+http_200() {
+  http_response "HTTP/1.1 200 OK" "200; $1"
+}
+
+http_404() {
+  http_response "HTTP/1.1 404 Not Found" "404; $1"
+}
+
+http_503() {
+  http_response "HTTP/1.1 503 Service Unavailable" "503; $1"
+}

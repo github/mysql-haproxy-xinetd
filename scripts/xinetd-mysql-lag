@@ -1,0 +1,47 @@
+#!/bin/bash
+#
+# This script checks if a MySQL server should take part in a pool, based on its role and its lag
+#
+
+. xinetd-helper
+
+# manual override:
+if [ -f /etc/xinetd-mysql/mysql-force-error-ro-pool-hint ] ; then
+  http_503 "Forced hard out of pool. $(cat /etc/xinetd-mysql/mysql-force-error-ro-pool-hint)"
+fi
+if [ -f /etc/xinetd-mysql/mysql-force-into-ro-pool-hint ] ; then
+  http_200 "Forced into pool. $(cat /etc/xinetd-mysql/mysql-force-into-ro-pool-hint)"
+fi
+if [ -f /etc/xinetd-mysql/mysql-force-outside-ro-pool-hint ] ; then
+  http_404 "Forced out of pool. $(cat /etc/xinetd-mysql/mysql-force-outside-ro-pool-hint)"
+fi
+
+# Begin with should-or-should-not even consider to be in pool checks:
+if [ -f /etc/xinetd-mysql/mysql-master-hint ] ; then
+  http_404 "Master: disabled"
+fi
+
+if [ -f /etc/xinetd-mysql/mysql-delayed-hint ] ; then
+  http_404 "Delayed server: disabled"
+fi
+
+
+# Proceed to lag specific checks
+absolute_lag=$(mysql -h 127.0.0.1 -u ... -p ... -e "select absolute_lag as 'xinetd-mysql-lag' from ...;" -ss 2>/dev/null)
+exit_code=$?
+
+acceptable_lag=5
+
+if [ "$exit_code" != "0" ] ; then
+  http_503 "MySQL error"
+fi
+
+if [ $absolute_lag -gt $acceptable_lag ] ; then
+  http_503 "MySQL lagging"
+fi
+
+if [ $absolute_lag -le $acceptable_lag ] ; then
+  http_200 "Lag OK"
+fi
+
+http_503 "Unexpected error"

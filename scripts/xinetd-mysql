@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# General purpose and selector script for the various xinetd-mysql commands.
+# This script assumes it is being called by a HTTP client, as is the case where
+# it is being called by HAProxy or curl. It reads the HTTP request line, and based
+# on the URI path, it invokes the specific xinetd-mysql script
+#
+# For manual tests, it is possible to provide with replacement-to-URI argument, e.g.
+# xinetd-mysql /ignore-lag
+# If an argument is given, the script trusts it and does not attempt to read from standard input
+#
+
+if [ $# -eq 1 ] ; then
+  uri_path="$1"
+else
+  read http_first_line
+  uri_path=$(echo $http_first_line | cut -d" " -f2)
+fi
+
+if [ "$uri_path" == "/master" ] ; then
+  . xinetd-mysql-master
+  exit
+fi
+
+if [ "$uri_path" == "/check-lag" ] ; then
+  . xinetd-mysql-check-lag
+  exit
+fi
+
+if [ "$uri_path" == "/ignore-lag" ] ; then
+  . xinetd-mysql-ignore-lag
+  exit
+fi
+
+if [ "$uri_path" == "/ignore-lag-allow-backup" ] ; then
+  . xinetd-mysql-ignore-lag-allow-backup
+  exit
+fi
+
+# ... More types of checks
+
+# Default path is lag check
+if [ "$uri_path" == "/" ] ; then
+  . xinetd-mysql-check-lag
+  exit
+fi
+
+. xinetd-helper
+http_503 "Unexpected URI (${uri_path})"
